@@ -14,7 +14,9 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 # Todays Current Date
 date = datetime.datetime.now()
-date = date.strftime("%a, %b %d, %Y")
+#date = date.strftime("%a, %b %d, %Y") #Mon, Aug 06, 2018
+#date = date.strftime("%a, %b %d") #Mon, Aug 06
+date = date.strftime("%b %d, %Y") #Aug 06, 2018
 dayOfWeek	= datetime.datetime.now()
 
 # First day of this week (Monday)
@@ -28,7 +30,7 @@ today 	= now.strftime("%A")
 
 # Website URLS
 byte_URL 	= "http://dining.guckenheimer.com/clients/npcholdings/fss/fss.nsf/weeklyMenuLaunch/9W4S24~" + Monday + "/$file/cafehome.htm"
-cloud_URL 	= "https://legacy.cafebonappetit.com/weekly-menu/206683"
+cloud_URL 	= "https://workday.cafebonappetit.com/"
 foodTruck_URL = "https://workday--simpplr.na6.visual.force.com/apex/Simpplr__SiteContent?origin=gs&searchTerm=food%20truck%20schedule#/site/a7x80000000003dAAA/page/a7t80000000D3LiAAK"
 if dayOfWeek.strftime("%w") == 5: # On Fridays provide the Food Truck Mafia URL
 	foodTruck_URL = "https://www.thefoodtruckmafia.com/upcoming"
@@ -54,8 +56,8 @@ class slackBot():
 		############ Send the Message to Slack as Bot ######################
 		print("\nPosting in Channel: %s\n\nPOSTING...\n" %(self.SLACK_CHANNEL))
 		self.sc.api_call(
-			"chat.postMessage", channel=self.SLACK_CHANNEL, username="Mr. Bot",
-			attachments=json.dumps(self.message),  icon_emoji=':robot_face:'	
+			"chat.postMessage", channel=self.SLACK_CHANNEL, username="marc.stocker",
+			attachments=json.dumps(self.message),  icon_emoji=':robot_face:'
 		)
 
 	def buildMessage(self):
@@ -123,7 +125,11 @@ class slackBot():
 
 	def buildMessageOriginal(self):
 		byteText 			= self.byteTitle 			+ "" + byteScrapper.getByteFoods()
-		truckText 			= self.truckTitle 			+ "_~*This is a Placeholder, not a real truck*~_\n\n"
+		truckText 			= input("\n\nWhat truck is going to come today?\nFoodTruck: ")
+		if truckText == '':
+			truckText 		= self.truckTitle 			+ "_~*This is a Placeholder, not a real truck*~_\n\n"
+		else:
+			truckText 		= self.truckTitle 			+ str(titlecase(truckText.capitalize())) + "\n\n"
 		cloudTextSoup 		= ">*Soup* :stew:" 			+ str(cloudScraper.getCloudFoods("soup"))
 		cloudTextGrill		="\n\n>*Grill* :grill: " 	+ str(cloudScraper.getCloudFoods("grill"))
 		cloudTextGlobal		="\n\n>*Global* :world_map:"+ str(cloudScraper.getCloudFoods("global"))
@@ -207,6 +213,10 @@ class cloudFoods():
 		# Open the page
 		cloud_Page = urlopen(URL)
 		thePage = BeautifulSoup(cloud_Page, 'lxml')
+		link = thePage.find('section', attrs={'id': "cafe-hours-2"})
+		link = link.find('a', attrs={'class': 'hidden-small'})['href']
+		cloud_Page = urlopen(link)
+		thePage = BeautifulSoup(cloud_Page, 'lxml')
 		for categoryID, numTimes in zip(self.foodIDs, range(0, len(self.foodIDs))):
 			self.itemStrings[numTimes] = ""
 			itemContainer = thePage.find('div', attrs={'id': categoryID})
@@ -239,8 +249,7 @@ class cloudFoods():
 
 	def getCloudFoods(self, which):
 		foodGroupsIDs	= {'soup':0, 'grill':1, 'global':2, 'wok':3, 'wokSides':4, 'breakfast':5}
-		print("This is the Which: %s" % (foodGroupsIDs[which]))
-		print("This is the ID: %s" % (which))
+		print("|getCloudFoods| Calling Food Group (%s: %s)" % (which, foodGroupsIDs[which]))
 		return str(self.itemStrings[foodGroupsIDs[which]])
 #class cloudFoods():
 #----------------------------------------------------------------------------------
